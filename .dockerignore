@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.*
+.pnpm-store
+.git
+config/sources.json
+docker-compose.override.yml
+*.log
+.DS_Store

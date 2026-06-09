@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.pnpm-store/
+coverage/
+config/sources.json
+docker-compose.override.yml
+*.log
+.DS_Store

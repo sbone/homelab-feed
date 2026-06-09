@@ -1,0 +1,45 @@
+[
+  {
+    "key": "sonarr",
+    "name": "Sonarr",
+    "app": "sonarr",
+    "baseUrl": "http://host.docker.internal:8081",
+    "apiKeyEnv": "SONARR_API_KEY",
+    "ingestTokenEnv": "SONARR_INGEST_TOKEN",
+    "enabled": true
+  },
+  {
+    "key": "radarr",
+    "name": "Radarr",
+    "app": "radarr",
+    "baseUrl": "http://host.docker.internal:7878",
+    "apiKeyEnv": "RADARR_API_KEY",
+    "ingestTokenEnv": "RADARR_INGEST_TOKEN",
+    "enabled": true
+  },
+  {
+    "key": "sabnzbd",
+    "name": "SABnzbd",
+    "app": "sabnzbd",
+    "baseUrl": "http://host.docker.internal:8080",
+    "apiKeyEnv": "SABNZBD_API_KEY",
+    "ingestTokenEnv": "SABNZBD_INGEST_TOKEN",
+    "enabled": true
+  },
+  {
+    "key": "plex",
+    "name": "Plex",
+    "app": "plex",
+    "ingestTokenEnv": "PLEX_INGEST_TOKEN",
+    "enabled": true
+  },
+  {
+    "key": "overseerr",
+    "name": "Overseerr",
+    "app": "overseerr",
+    "baseUrl": "http://192.168.1.50:5055",
+    "apiKeyEnv": "OVERSEERR_API_KEY",
+    "ingestTokenEnv": "OVERSEERR_INGEST_TOKEN",
+    "enabled": true
+  }
+]

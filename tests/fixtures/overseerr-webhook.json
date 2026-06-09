@@ -1,0 +1,18 @@
+{
+  "notification_type": "MEDIA_APPROVED",
+  "event": "Request Approved",
+  "subject": "Example Movie",
+  "message": "The request was approved.",
+  "media": {
+    "mediaType": "movie",
+    "tmdbId": 550,
+    "status": "PROCESSING"
+  },
+  "request": {
+    "id": 42,
+    "createdAt": "2026-06-09T12:02:00Z",
+    "requestedBy": {
+      "username": "steven"
+    }
+  }
+}

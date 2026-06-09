@@ -1,0 +1,20 @@
+{
+  "eventType": "Download",
+  "series": {
+    "id": 10,
+    "title": "Example Show",
+    "tvdbId": 12345,
+    "imdbId": "tt1234567"
+  },
+  "episode": {
+    "id": 99,
+    "title": "Pilot"
+  },
+  "quality": {
+    "quality": {
+      "name": "WEBDL-1080p"
+    }
+  },
+  "sourceTitle": "Example.Show.S01E01.1080p.WEB-DL",
+  "date": "2026-06-09T12:00:00Z"
+}

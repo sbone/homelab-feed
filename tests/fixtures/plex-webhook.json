@@ -1,0 +1,26 @@
+{
+  "event": "media.play",
+  "user": true,
+  "owner": true,
+  "Account": {
+    "id": 1,
+    "title": "steven"
+  },
+  "Server": {
+    "title": "Plex",
+    "uuid": "server-uuid"
+  },
+  "Player": {
+    "local": true,
+    "title": "Plex Web",
+    "uuid": "player-uuid"
+  },
+  "Metadata": {
+    "ratingKey": "1234",
+    "guid": "plex://movie/abc",
+    "type": "movie",
+    "title": "Example Movie",
+    "addedAt": 1781006400,
+    "updatedAt": 1781006400
+  }
+}

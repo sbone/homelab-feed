@@ -1,0 +1,15 @@
+{
+  "id": 88,
+  "eventType": "grabbed",
+  "date": "2026-06-09T12:01:00Z",
+  "movie": {
+    "id": 44,
+    "title": "Example Movie",
+    "tmdbId": 550,
+    "imdbId": "tt0137523"
+  },
+  "sourceTitle": "Example.Movie.1999.1080p.BluRay",
+  "data": {
+    "downloadClient": "SABnzbd"
+  }
+}
