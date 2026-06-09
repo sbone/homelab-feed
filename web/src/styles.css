@@ -27,30 +27,31 @@ input {
 }
 
 .shell {
-  width: min(1120px, calc(100vw - 32px));
+  width: min(1120px, calc(100vw - 20px));
   margin: 0 auto;
-  padding: 28px 0 56px;
+  padding: 16px 0 40px;
 }
 
 .topbar {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 24px;
-  padding: 8px 0 18px;
+  gap: 16px;
+  padding: 6px 0 12px;
   border-bottom: 1px solid #deded7;
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(1.7rem, 4vw, 2.6rem);
+  font-size: clamp(1.45rem, 4vw, 2.1rem);
   line-height: 1.05;
   letter-spacing: 0;
 }
 
 .topbar p {
-  margin: 8px 0 0;
+  margin: 5px 0 0;
   color: #64645c;
+  font-size: 0.9rem;
 }
 
 .button {
@@ -72,14 +73,14 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  gap: 12px;
-  padding: 18px 0;
+  gap: 8px;
+  padding: 12px 0;
 }
 
 .toolbar label {
   display: grid;
-  gap: 6px;
-  min-width: 180px;
+  gap: 4px;
+  min-width: 160px;
 }
 
 .toolbar span {
@@ -88,7 +89,7 @@ h1 {
 }
 
 select {
-  min-height: 38px;
+  min-height: 34px;
   border: 1px solid #c8c8be;
   border-radius: 6px;
   background: white;
@@ -99,8 +100,8 @@ select {
 .check {
   grid-template-columns: auto 1fr;
   align-items: center;
-  min-height: 38px;
-  padding: 0 10px;
+  min-height: 34px;
+  padding: 0 9px;
   border: 1px solid #c8c8be;
   border-radius: 6px;
   background: white;
@@ -132,17 +133,19 @@ select {
 
 .timeline {
   display: grid;
-  gap: 8px;
+  gap: 5px;
 }
 
 .event {
   display: grid;
-  grid-template-columns: 4px 1fr;
-  min-height: 86px;
+  grid-template-columns: 3px 1fr;
+  min-height: 58px;
   background: white;
   border: 1px solid #deded7;
   border-radius: 8px;
   overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: 58px;
 }
 
 .rail {
@@ -168,9 +171,9 @@ select {
 .event-main {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
-  padding: 13px 16px 14px;
+  padding: 8px 10px 9px;
 }
 
 .event-copy {
@@ -178,7 +181,7 @@ select {
 }
 
 .poster {
-  width: 58px;
+  width: 42px;
   aspect-ratio: 2 / 3;
   object-fit: cover;
   border-radius: 5px;
@@ -189,44 +192,49 @@ select {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   color: #64645c;
-  font-size: 0.82rem;
+  font-size: 0.72rem;
 }
 
 .event h2 {
-  margin: 7px 0 0;
-  font-size: 1rem;
-  line-height: 1.35;
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.25;
   letter-spacing: 0;
   overflow-wrap: anywhere;
 }
 
 .event p {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: #4b4b45;
-  line-height: 1.4;
+  font-size: 0.8rem;
+  line-height: 1.3;
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .details {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 6px;
+  margin-top: 3px;
   color: #64645c;
-  font-size: 0.86rem;
+  font-size: 0.76rem;
 }
 
 .details span + span::before {
   content: "/";
-  margin-right: 8px;
+  margin-right: 6px;
   color: #a6a69a;
 }
 
 .badge {
   border-radius: 999px;
-  padding: 2px 8px;
+  padding: 1px 6px;
   color: white;
   background: #7e858b;
 }
@@ -249,7 +257,7 @@ select {
 
 .provider-pill {
   border-radius: 999px;
-  padding: 2px 8px;
+  padding: 1px 6px;
   color: white;
   background: #5f686f;
   font-weight: 650;
@@ -292,8 +300,8 @@ select {
 .resource-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 6px;
+  margin-top: 7px;
 }
 
 .resource-links a {
@@ -301,8 +309,8 @@ select {
   border-radius: 999px;
   color: #202124;
   background: #f7f7f4;
-  padding: 3px 9px;
-  font-size: 0.82rem;
+  padding: 2px 7px;
+  font-size: 0.72rem;
   text-decoration: none;
 }
 
@@ -312,14 +320,14 @@ select {
 
 @media (max-width: 640px) {
   .shell {
-    width: min(100vw - 20px, 1120px);
-    padding-top: 18px;
+    width: min(100vw - 12px, 1120px);
+    padding-top: 10px;
   }
 
   .topbar {
     align-items: stretch;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
   }
 
   .button {
@@ -335,11 +343,7 @@ select {
     min-width: 0;
   }
 
-  .event-main {
-    grid-template-columns: 1fr;
-  }
-
   .poster {
-    display: none;
+    width: 36px;
   }
 }
