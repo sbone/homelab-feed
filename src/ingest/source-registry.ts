@@ -1,10 +1,12 @@
-import { eq } from "drizzle-orm";
+import { eq, notInArray } from "drizzle-orm";
 import { sourceSecretRefs, type AppConfig } from "../config.js";
 import type { Database } from "../db/client.js";
 import { sources, type SourceRow } from "../db/schema.js";
 import type { RuntimeSource } from "../types.js";
 
 export async function syncConfiguredSources(db: Database, config: AppConfig): Promise<void> {
+  const configuredKeys = config.sources.map((source) => source.key);
+
   for (const source of config.sources) {
     await db
       .insert(sources)
@@ -30,6 +32,13 @@ export async function syncConfiguredSources(db: Database, config: AppConfig): Pr
         },
       });
   }
+
+  if (configuredKeys.length > 0) {
+    await db
+      .update(sources)
+      .set({ enabled: false, updatedAt: new Date() })
+      .where(notInArray(sources.key, configuredKeys));
+  }
 }
 
 export async function sourceRowByKey(db: Database, key: string): Promise<SourceRow | undefined> {
@@ -43,10 +52,10 @@ export function runtimeSourceByKey(config: AppConfig, key: string): RuntimeSourc
 
 function capabilitiesFor(source: RuntimeSource): string[] {
   const base = ["webhook"];
-  if (source.app === "plex") {
-    return base;
-  }
   if (source.app === "sabnzbd") {
+    return [...base, "pollHistory", "pollStatus"];
+  }
+  if (source.app === "tautulli") {
     return [...base, "pollHistory", "pollStatus"];
   }
   return [...base, "pollHistory"];

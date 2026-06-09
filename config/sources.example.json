@@ -27,10 +27,12 @@
     "enabled": true
   },
   {
-    "key": "plex",
+    "key": "tautulli",
     "name": "Plex",
-    "app": "plex",
-    "ingestTokenEnv": "PLEX_INGEST_TOKEN",
+    "app": "tautulli",
+    "baseUrl": "http://host.docker.internal:8181",
+    "apiKeyEnv": "TAUTULLI_API_KEY",
+    "ingestTokenEnv": "TAUTULLI_INGEST_TOKEN",
     "enabled": true
   },
   {

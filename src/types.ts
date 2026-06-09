@@ -1,4 +1,4 @@
-export const appKinds = ["sonarr", "radarr", "sabnzbd", "plex", "overseerr"] as const;
+export const appKinds = ["sonarr", "radarr", "sabnzbd", "tautulli", "overseerr"] as const;
 export type AppKind = (typeof appKinds)[number];
 
 export const severities = ["success", "info", "warning", "error"] as const;

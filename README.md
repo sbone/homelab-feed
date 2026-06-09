@@ -1,6 +1,6 @@
 # Homelab Feed
 
-A local activity feed collector for homelab media apps: Sonarr, Radarr, SABnzbd, Plex, and Overseerr.
+A local activity feed collector for homelab media apps: Sonarr, Radarr, SABnzbd, Plex activity through Tautulli, and Overseerr.
 
 The collector stores immutable raw payloads and normalized feed events in Postgres. App-specific adapters handle vendor payloads, but the database, query API, and lightweight React UI stay generic enough for timeline views, filtering, rollups, and debouncing.
 
@@ -93,7 +93,7 @@ curl -X POST http://localhost:3000/api/sync/sonarr/backfill \
 curl -s "http://localhost:3000/api/events?limit=10" | jq
 ```
 
-Backfill-capable sources in v1 are Sonarr, Radarr, SABnzbd, and Overseerr. Plex is webhook-only.
+Backfill-capable sources in v1 are Sonarr, Radarr, SABnzbd, Tautulli, and Overseerr. Tautulli is used as the Plex activity source for playback history, recently added media, and active streams.
 
 ## UI
 
@@ -105,7 +105,7 @@ The first screen shows the latest normalized events with source and severity fil
 
 - Sonarr/Radarr use the shared Servarr adapter for webhooks and `/api/v3/history` backfill.
 - SABnzbd uses `mode=history` and `mode=queue`, with optional notification-script ingestion.
-- Plex is webhook-only in v1 and accepts multipart webhook payloads.
+- Tautulli backs Plex activity using `get_history`, `get_recently_added`, and `get_activity`; the UI can still display the source as Plex.
 - Overseerr accepts custom webhook JSON and can backfill request state from its API.
 
 ## Implementation Notes

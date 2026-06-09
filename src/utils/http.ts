@@ -17,7 +17,7 @@ export async function fetchJson<T>(url: URL, init: RequestInit = {}): Promise<T>
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    throw new Error(`HTTP ${response.status} ${response.statusText} from ${url.toString()}: ${body.slice(0, 300)}`);
+    throw new Error(`HTTP ${response.status} ${response.statusText} from ${redactUrl(url)}: ${body.slice(0, 300)}`);
   }
 
   return (await response.json()) as T;
@@ -32,7 +32,7 @@ function formatFetchFailure(url: URL, error: unknown): string {
   const name = error instanceof Error ? error.name : undefined;
 
   if (name === "TimeoutError" || code === "ETIMEDOUT") {
-    return `Could not reach ${url.origin}: request timed out after 15s`;
+    return `Could not reach ${redactUrl(url)}: request timed out after 15s`;
   }
   if (code === "ENOTFOUND") {
     return `Could not resolve ${url.hostname}. Check the source baseUrl or Docker DNS/extra_hosts settings.`;
@@ -45,7 +45,17 @@ function formatFetchFailure(url: URL, error: unknown): string {
   }
 
   const detail = error instanceof Error ? error.message : "unknown fetch error";
-  return `Could not reach ${url.origin}: ${detail}`;
+  return `Could not reach ${redactUrl(url)}: ${detail}`;
+}
+
+function redactUrl(url: URL): string {
+  const copy = new URL(url);
+  for (const key of copy.searchParams.keys()) {
+    if (/api[-_]?key|token|password|secret/i.test(key)) {
+      copy.searchParams.set(key, "REDACTED");
+    }
+  }
+  return copy.toString();
 }
 
 export function sourceUrl(source: RuntimeSource, path: string): URL {

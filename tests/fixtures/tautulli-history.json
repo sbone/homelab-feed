@@ -1,0 +1,22 @@
+{
+  "row_id": 1124,
+  "rating_key": "153037",
+  "guid": "plex://episode/abc",
+  "guids": ["imdb://tt1234567", "tmdb://12345", "tvdb://67890"],
+  "media_type": "episode",
+  "full_title": "Example Show - Pilot",
+  "grandparent_title": "Example Show",
+  "parent_title": "Season 1",
+  "title": "Pilot",
+  "year": "2026",
+  "library_name": "TV Shows",
+  "friendly_name": "Steven",
+  "user_id": 1,
+  "percent_complete": 95,
+  "watched_status": 1,
+  "started": 1781006400,
+  "stopped": 1781008200,
+  "player": "Apple TV",
+  "platform": "tvOS",
+  "transcode_decision": "direct play"
+}

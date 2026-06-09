@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import sonarrWebhook from "./fixtures/sonarr-webhook.json" with { type: "json" };
 import radarrHistory from "./fixtures/radarr-history.json" with { type: "json" };
 import sabHistory from "./fixtures/sabnzbd-history.json" with { type: "json" };
-import plexWebhook from "./fixtures/plex-webhook.json" with { type: "json" };
+import tautulliHistory from "./fixtures/tautulli-history.json" with { type: "json" };
 import overseerrWebhook from "./fixtures/overseerr-webhook.json" with { type: "json" };
 import { getAdapter } from "../src/adapters/index.js";
 import type { AdapterContext, RuntimeSource } from "../src/types.js";
@@ -42,14 +42,15 @@ describe("adapters", () => {
     expect(event.resource?.canonicalKey).toBe("sabnzbd:sabnzbd_nzo_abc123");
   });
 
-  it("marks noisy Plex playback lifecycle events as low value", () => {
-    const source = sourceFor("plex");
-    const stopPayload = { ...plexWebhook, event: "media.stop" };
-    const [event] = getAdapter("plex").normalizeWebhook(stopPayload, context(source));
+  it("normalizes Tautulli history as watched Plex media", () => {
+    const source = sourceFor("tautulli");
+    const [event] = getAdapter("tautulli").normalizeWebhook(tautulliHistory, context(source));
 
-    expect(event.eventType).toBe("media-stop");
-    expect(event.visibility).toBe("low_value");
-    expect(event.resource?.externalIds?.plexGuid).toBe("plex://movie/abc");
+    expect(event.eventType).toBe("media-watched");
+    expect(event.resource?.title).toBe("Example Show - Pilot");
+    expect(event.resource?.externalIds?.tmdbId).toBe("12345");
+    expect(event.resource?.externalIds?.plexGuid).toBe("plex://episode/abc");
+    expect(event.attributes?.plex).toBe(true);
   });
 
   it("normalizes Overseerr request events with TMDB identity", () => {

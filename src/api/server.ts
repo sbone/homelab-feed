@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import multipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import { z } from "zod";
 import { getAdapter } from "../adapters/index.js";
@@ -133,7 +133,7 @@ export function createApp(config: AppConfig, db: Database): FastifyInstance {
   });
 
   app.get("/api/sources", async () => {
-    const rows = await db.select().from(sources).orderBy(sources.key);
+    const rows = await db.select().from(sources).where(eq(sources.enabled, true)).orderBy(sources.key);
     return {
       sources: rows.map((source) => ({
         key: source.key,
