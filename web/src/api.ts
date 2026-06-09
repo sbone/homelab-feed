@@ -26,6 +26,7 @@ export interface FeedEvent {
       id?: string | number;
       displayName?: string;
     };
+    user?: string;
   } & Record<string, unknown>;
   resource: {
     canonicalKey: string;

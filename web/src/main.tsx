@@ -283,7 +283,9 @@ function App() {
                 <h2>{displayTitle(event)}</h2>
                 <div className="details">
                   {event.resource?.subtitle ? <span>{event.resource.subtitle}</span> : null}
-                  {requesterName(event) ? <span>Requested by {requesterName(event)}</span> : null}
+                  {actorName(event) ? (
+                    <span>{event.attributes.requestedBy ? "Requested by" : "User"} {actorName(event)}</span>
+                  ) : null}
                 </div>
                 {event.message && event.message !== displayTitle(event) ? <p>{event.message}</p> : null}
                 {event.resource ? <ResourceLinks event={event} /> : null}
@@ -457,8 +459,8 @@ function displayTitle(event: FeedEvent): string {
   return event.resource?.title ?? event.title;
 }
 
-function requesterName(event: FeedEvent): string | undefined {
-  return event.attributes.requestedBy?.displayName;
+function actorName(event: FeedEvent): string | undefined {
+  return stringValue(event.attributes.requestedBy?.displayName) ?? stringValue(event.attributes.user);
 }
 
 function posterUrl(event: FeedEvent): string | undefined {
