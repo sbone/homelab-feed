@@ -5,8 +5,9 @@ RUN corepack enable && pnpm install --frozen-lockfile
 
 FROM deps AS build
 WORKDIR /app
-COPY tsconfig.json drizzle.config.ts ./
+COPY tsconfig.json tsconfig.web.json vite.config.ts drizzle.config.ts ./
 COPY src ./src
+COPY web ./web
 COPY tests ./tests
 RUN pnpm build
 

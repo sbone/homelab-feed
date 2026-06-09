@@ -1,8 +1,8 @@
 # Homelab Feed
 
-A local API-only activity feed collector for homelab media apps: Sonarr, Radarr, SABnzbd, Plex, and Overseerr.
+A local activity feed collector for homelab media apps: Sonarr, Radarr, SABnzbd, Plex, and Overseerr.
 
-The collector stores immutable raw payloads and normalized feed events in Postgres. App-specific adapters handle vendor payloads, but the database and query API stay generic enough for timeline views, filtering, rollups, and debouncing.
+The collector stores immutable raw payloads and normalized feed events in Postgres. App-specific adapters handle vendor payloads, but the database, query API, and lightweight React UI stay generic enough for timeline views, filtering, rollups, and debouncing.
 
 ## Recommended: Docker Compose
 
@@ -18,6 +18,12 @@ Then check:
 
 ```bash
 curl http://localhost:3000/healthz
+```
+
+Open the timeline UI:
+
+```text
+http://localhost:3000
 ```
 
 Before first run, replace `ADMIN_TOKEN` in `.env` with a long random value:
@@ -88,6 +94,12 @@ curl -s "http://localhost:3000/api/events?limit=10" | jq
 ```
 
 Backfill-capable sources in v1 are Sonarr, Radarr, SABnzbd, and Overseerr. Plex is webhook-only.
+
+## UI
+
+The UI is a lean React/Vite app served by the same Fastify process after `pnpm build` or Docker build. It uses a small typed API client and an Elm-style `Model`/`Msg` reducer instead of a global state library.
+
+The first screen shows the latest normalized events with source and severity filters. It intentionally reads from the existing JSON API only; writes and admin actions stay out of the browser for now.
 
 ## Source Notes
 

@@ -1,4 +1,7 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import multipart from "@fastify/multipart";
+import fastifyStatic from "@fastify/static";
 import { sql } from "drizzle-orm";
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 import { z } from "zod";
@@ -153,6 +156,16 @@ export function createApp(config: AppConfig, db: Database): FastifyInstance {
     const result = await runBackfillOnce(db, config, params.sourceKey);
     return { backfill: result };
   });
+
+  const webRoot = join(process.cwd(), "dist/web");
+  if (existsSync(webRoot)) {
+    void app.register(fastifyStatic, {
+      root: webRoot,
+      prefix: "/",
+    });
+
+    app.get("/", async (_request, reply) => reply.sendFile("index.html"));
+  }
 
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof z.ZodError) {
