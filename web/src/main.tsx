@@ -1,6 +1,12 @@
 import { StrictMode, useEffect, useReducer } from "react";
 import { createRoot } from "react-dom/client";
 import { type FeedEvent, type Filters, loadFeed, type Source } from "./api";
+import { ThemeToggle } from "./components/theme-toggle";
+import { Badge } from "./components/ui/badge";
+import { Button } from "./components/ui/button";
+import { Select } from "./components/ui/select";
+import { Switch } from "./components/ui/switch";
+import { ThemeProvider } from "./lib/theme";
 import "./styles.css";
 
 interface Model {
@@ -89,20 +95,18 @@ function App() {
           <h1>Homelab Feed</h1>
           <p>{summaryText(model)}</p>
         </div>
-        <button
-          type="button"
-          className="button"
-          onClick={() => dispatch({ type: "refresh" })}
-          disabled={model.status === "loading"}
-        >
-          Refresh
-        </button>
+        <div className="topbar-actions">
+          <ThemeToggle />
+          <Button type="button" onClick={() => dispatch({ type: "refresh" })} disabled={model.status === "loading"}>
+            Refresh
+          </Button>
+        </div>
       </header>
 
       <section className="toolbar" aria-label="Feed filters">
         <label>
           <span>Source</span>
-          <select
+          <Select
             value={model.filters.sourceKey}
             onChange={(event) => dispatch({ type: "set_filter", key: "sourceKey", value: event.target.value })}
           >
@@ -112,12 +116,12 @@ function App() {
                 {source.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <label>
           <span>Severity</span>
-          <select
+          <Select
             value={model.filters.severity}
             onChange={(event) => dispatch({ type: "set_filter", key: "severity", value: event.target.value })}
           >
@@ -126,19 +130,14 @@ function App() {
             <option value="info">Info</option>
             <option value="warning">Warning</option>
             <option value="error">Error</option>
-          </select>
+          </Select>
         </label>
 
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={model.filters.includeLowValue}
-            onChange={(event) =>
-              dispatch({ type: "set_filter", key: "includeLowValue", value: event.target.checked })
-            }
-          />
-          <span>Low-value events</span>
-        </label>
+        <Switch
+          label="Low-value events"
+          checked={model.filters.includeLowValue}
+          onChange={(event) => dispatch({ type: "set_filter", key: "includeLowValue", value: event.target.checked })}
+        />
       </section>
 
       {model.status === "error" ? <div className="notice error">{model.error}</div> : null}
@@ -155,8 +154,8 @@ function App() {
               <div className="event-copy">
                 <div className="event-meta">
                   <time dateTime={event.occurredAt}>{formatTime(event.occurredAt)}</time>
-                  <span className={`provider-pill ${providerClass(event.source.app)}`}>{event.source.name}</span>
-                  <span className={`badge ${event.severity}`}>{event.severity}</span>
+                  <Badge className={`provider-pill ${providerClass(event.source.app)}`}>{event.source.name}</Badge>
+                  <Badge className={`severity-badge ${event.severity}`}>{event.severity}</Badge>
                   <span>{event.eventType}</span>
                 </div>
                 <h2>{displayTitle(event)}</h2>
@@ -285,6 +284,8 @@ function formatClock(value: string): string {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
   </StrictMode>,
 );
