@@ -155,7 +155,7 @@ function App() {
               <div className="event-copy">
                 <div className="event-meta">
                   <time dateTime={event.occurredAt}>{formatTime(event.occurredAt)}</time>
-                  <span>{event.source.name}</span>
+                  <span className={`provider-pill ${providerClass(event.source.app)}`}>{event.source.name}</span>
                   <span className={`badge ${event.severity}`}>{event.severity}</span>
                   <span>{event.eventType}</span>
                 </div>
@@ -212,6 +212,10 @@ function setOptionalParam(params: URLSearchParams, key: string, value: string): 
   } else {
     params.delete(key);
   }
+}
+
+function providerClass(app: string): string {
+  return `provider-${app.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 }
 
 function ResourceLinks({ event }: { event: FeedEvent }) {

@@ -247,6 +247,34 @@ select {
   background: #bd4937;
 }
 
+.provider-pill {
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: white;
+  background: #5f686f;
+  font-weight: 650;
+}
+
+.provider-sonarr {
+  background: #2476b8;
+}
+
+.provider-radarr {
+  background: #b6542f;
+}
+
+.provider-sabnzbd {
+  background: #6f8f2a;
+}
+
+.provider-plex {
+  background: #b78216;
+}
+
+.provider-overseerr {
+  background: #6e55a8;
+}
+
 .resource {
   display: flex;
   flex-wrap: wrap;
