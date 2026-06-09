@@ -20,10 +20,25 @@ export interface FeedEvent {
     app: string;
     name: string;
   };
+  attributes: {
+    requestedBy?: {
+      id?: string | number;
+      displayName?: string;
+    };
+  } & Record<string, unknown>;
   resource: {
     canonicalKey: string;
     title: string | null;
     subtitle: string | null;
+    externalIds: Record<string, unknown>;
+    appRefs: {
+      posterUrl?: string;
+      tmdbUrl?: string;
+      imdbUrl?: string;
+      metacriticUrl?: string;
+      year?: string;
+      mediaType?: string;
+    } & Record<string, unknown>;
   } | null;
 }
 

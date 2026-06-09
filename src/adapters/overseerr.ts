@@ -12,6 +12,20 @@ interface OverseerrRequestsResponse {
   };
 }
 
+interface OverseerrMediaMetadata {
+  title?: string;
+  year?: string;
+  posterPath?: string;
+  posterUrl?: string;
+  backdropPath?: string;
+  imdbId?: string;
+  tmdbUrl?: string;
+  imdbUrl?: string;
+  metacriticUrl?: string;
+  overview?: string;
+  voteAverage?: number;
+}
+
 export const overseerrAdapter: Adapter = {
   app: "overseerr",
   normalizeWebhook(payload, context) {
@@ -40,8 +54,9 @@ async function backfillOverseerr(
     },
   });
   const records = response.results ?? [];
+  const enrichedRecords = await enrichOverseerrRecords(source, records);
   const now = new Date();
-  const events = records.map((record) =>
+  const events = enrichedRecords.map((record) =>
     normalizeOverseerrPayload(record, { source, ingestMethod: "backfill", now }),
   );
   const pages = response.pageInfo?.pages ?? page;
@@ -53,6 +68,83 @@ async function backfillOverseerr(
       page: page < pages ? page + 1 : page,
       complete: page >= pages,
     },
+  };
+}
+
+async function enrichOverseerrRecords(source: RuntimeSource, records: unknown[]): Promise<unknown[]> {
+  const cache = new Map<string, Promise<OverseerrMediaMetadata | undefined>>();
+
+  return mapWithConcurrency(records, 6, async (record) => {
+    const value = asRecord(record);
+    const media = asRecord(value.media);
+    const mediaType = stringValue(media.mediaType) ?? stringValue(value.type);
+    const tmdbId = numberValue(media.tmdbId);
+
+    if (!tmdbId || !mediaType || (mediaType !== "movie" && mediaType !== "tv")) {
+      return record;
+    }
+
+    const key = `${mediaType}:${tmdbId}`;
+    if (!cache.has(key)) {
+      cache.set(key, fetchOverseerrMediaMetadata(source, mediaType, tmdbId));
+    }
+
+    const metadata = await cache.get(key);
+    return metadata ? { ...value, _homelabMedia: metadata } : record;
+  });
+}
+
+async function fetchOverseerrMediaMetadata(
+  source: RuntimeSource,
+  mediaType: string,
+  tmdbId: number,
+): Promise<OverseerrMediaMetadata | undefined> {
+  if (!source.apiKey) {
+    return undefined;
+  }
+
+  const path = mediaType === "tv" ? `/api/v1/tv/${tmdbId}` : `/api/v1/movie/${tmdbId}`;
+  const url = sourceUrl(source, path);
+
+  try {
+    const metadata = asRecord(
+      await fetchJson<unknown>(url, {
+        headers: {
+          "X-Api-Key": source.apiKey,
+        },
+      }),
+    );
+    return toMediaMetadata(mediaType, tmdbId, metadata);
+  } catch {
+    return undefined;
+  }
+}
+
+function toMediaMetadata(
+  mediaType: string,
+  tmdbId: number,
+  metadata: Record<string, unknown>,
+): OverseerrMediaMetadata {
+  const title = stringValue(metadata.title) ?? stringValue(metadata.name);
+  const date = stringValue(metadata.releaseDate) ?? stringValue(metadata.firstAirDate);
+  const year = date?.slice(0, 4);
+  const posterPath = stringValue(metadata.posterPath);
+  const backdropPath = stringValue(metadata.backdropPath);
+  const externalIds = asRecord(metadata.externalIds);
+  const imdbId = stringValue(metadata.imdbId) ?? stringValue(externalIds.imdbId);
+
+  return {
+    title,
+    year,
+    posterPath,
+    posterUrl: posterPath ? `https://image.tmdb.org/t/p/w342${posterPath}` : undefined,
+    backdropPath,
+    imdbId,
+    tmdbUrl: `https://www.themoviedb.org/${mediaType}/${tmdbId}`,
+    imdbUrl: imdbId ? `https://www.imdb.com/title/${imdbId}/` : undefined,
+    metacriticUrl: title ? `https://www.metacritic.com/search/${encodeURIComponent(title)}/` : undefined,
+    overview: stringValue(metadata.overview),
+    voteAverage: numberValue(metadata.voteAverage),
   };
 }
 
@@ -107,20 +199,56 @@ function overseerrResource(
   media: Record<string, unknown>,
   request: Record<string, unknown>,
 ): ResourceDraft {
+  const metadata = asRecord(record._homelabMedia);
   const subject = stringValue(record.subject);
   const mediaType = stringValue(media.mediaType) ?? stringValue(media.media_type) ?? stringValue(record.media_type);
   const tmdbId = numberValue(media.tmdbId) ?? numberValue(media.tmdbid) ?? numberValue(record.media_tmdbid);
   const tvdbId = numberValue(media.tvdbId) ?? numberValue(media.tvdbid) ?? numberValue(record.media_tvdbid);
+  const imdbId = stringValue(metadata.imdbId) ?? stringValue(media.imdbId);
+  const title = subject ?? stringValue(metadata.title) ?? stringValue(media.title) ?? stringValue(request.title);
+  const year = stringValue(metadata.year);
   const requestId = stringValue(request.id) ?? stringValue(record.request_id);
 
   return {
     resourceType: "media",
-    title: subject ?? stringValue(media.title) ?? stringValue(request.title),
-    subtitle: mediaType,
+    title,
+    subtitle: [year, mediaType].filter(Boolean).join(" · ") || undefined,
     canonicalKey: tmdbId ? compactKey("tmdb", tmdbId) : tvdbId ? compactKey("tvdb", tvdbId) : requestId ? compactKey("overseerr-request", requestId) : undefined,
-    externalIds: compactRecord({ tmdbId, tvdbId }),
-    appRefs: compactRecord({ overseerrRequestId: requestId, mediaType }),
+    externalIds: compactRecord({ tmdbId, tvdbId, imdbId }),
+    appRefs: compactRecord({
+      overseerrRequestId: requestId,
+      mediaType,
+      year,
+      posterPath: metadata.posterPath,
+      posterUrl: metadata.posterUrl,
+      backdropPath: metadata.backdropPath,
+      tmdbUrl: metadata.tmdbUrl,
+      imdbUrl: metadata.imdbUrl,
+      metacriticUrl: metadata.metacriticUrl,
+      overview: metadata.overview,
+      voteAverage: metadata.voteAverage,
+    }),
   };
+}
+
+async function mapWithConcurrency<T, U>(
+  items: T[],
+  limit: number,
+  mapper: (item: T) => Promise<U>,
+): Promise<U[]> {
+  const results = new Array<U>(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await mapper(items[index]);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
+  return results;
 }
 
 function statusToType(status?: string): string {

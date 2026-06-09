@@ -166,8 +166,23 @@ select {
 }
 
 .event-main {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
   min-width: 0;
   padding: 13px 16px 14px;
+}
+
+.event-copy {
+  min-width: 0;
+}
+
+.poster {
+  width: 58px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 5px;
+  background: #deded7;
 }
 
 .event-meta {
@@ -192,6 +207,21 @@ select {
   color: #4b4b45;
   line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+.details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+  color: #64645c;
+  font-size: 0.86rem;
+}
+
+.details span + span::before {
+  content: "/";
+  margin-right: 8px;
+  color: #a6a69a;
 }
 
 .badge {
@@ -231,6 +261,27 @@ select {
   color: #8a8a80;
 }
 
+.resource-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.resource-links a {
+  border: 1px solid #c8c8be;
+  border-radius: 999px;
+  color: #202124;
+  background: #f7f7f4;
+  padding: 3px 9px;
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
+.resource-links a:hover {
+  border-color: #202124;
+}
+
 @media (max-width: 640px) {
   .shell {
     width: min(100vw - 20px, 1120px);
@@ -254,5 +305,13 @@ select {
 
   .toolbar label {
     min-width: 0;
+  }
+
+  .event-main {
+    grid-template-columns: 1fr;
+  }
+
+  .poster {
+    display: none;
   }
 }

@@ -149,26 +149,68 @@ function App() {
           <article className="event" key={event.id}>
             <div className={`rail ${event.severity}`} />
             <div className="event-main">
-              <div className="event-meta">
-                <time dateTime={event.occurredAt}>{formatTime(event.occurredAt)}</time>
-                <span>{event.source.name}</span>
-                <span className={`badge ${event.severity}`}>{event.severity}</span>
-                <span>{event.eventType}</span>
-              </div>
-              <h2>{event.title}</h2>
-              {event.message ? <p>{event.message}</p> : null}
-              {event.resource ? (
-                <div className="resource">
-                  {event.resource.title ?? event.resource.canonicalKey}
-                  {event.resource.subtitle ? <span>{event.resource.subtitle}</span> : null}
-                </div>
+              {posterUrl(event) ? (
+                <img className="poster" src={posterUrl(event)} alt="" loading="lazy" />
               ) : null}
+              <div className="event-copy">
+                <div className="event-meta">
+                  <time dateTime={event.occurredAt}>{formatTime(event.occurredAt)}</time>
+                  <span>{event.source.name}</span>
+                  <span className={`badge ${event.severity}`}>{event.severity}</span>
+                  <span>{event.eventType}</span>
+                </div>
+                <h2>{displayTitle(event)}</h2>
+                <div className="details">
+                  {event.resource?.subtitle ? <span>{event.resource.subtitle}</span> : null}
+                  {requesterName(event) ? <span>Requested by {requesterName(event)}</span> : null}
+                </div>
+                {event.message && event.message !== displayTitle(event) ? <p>{event.message}</p> : null}
+                {event.resource ? <ResourceLinks event={event} /> : null}
+              </div>
             </div>
           </article>
         ))}
       </section>
     </main>
   );
+}
+
+function ResourceLinks({ event }: { event: FeedEvent }) {
+  const links = [
+    ["TMDB", stringValue(event.resource?.appRefs.tmdbUrl)],
+    ["IMDb", stringValue(event.resource?.appRefs.imdbUrl)],
+    ["Metacritic", stringValue(event.resource?.appRefs.metacriticUrl)],
+  ].filter((entry): entry is [string, string] => Boolean(entry[1]));
+
+  if (links.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="resource-links">
+      {links.map(([label, href]) => (
+        <a key={label} href={href} target="_blank" rel="noreferrer">
+          {label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function displayTitle(event: FeedEvent): string {
+  return event.resource?.title ?? event.title;
+}
+
+function requesterName(event: FeedEvent): string | undefined {
+  return event.attributes.requestedBy?.displayName;
+}
+
+function posterUrl(event: FeedEvent): string | undefined {
+  return stringValue(event.resource?.appRefs.posterUrl);
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
 function summaryText(model: Model): string {
