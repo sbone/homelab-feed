@@ -1,9 +1,10 @@
-import { StrictMode, useEffect, useReducer } from "react";
+import { StrictMode, type Dispatch, useEffect, useReducer } from "react";
 import { createRoot } from "react-dom/client";
-import { type FeedEvent, type Filters, loadFeed, type Source } from "./api";
+import { ApiError, type BackfillSummary, type FeedEvent, type Filters, loadFeed, runBackfill, type Source } from "./api";
 import { ThemeToggle } from "./components/theme-toggle";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
 import { Select } from "./components/ui/select";
 import { Switch } from "./components/ui/switch";
 import { ThemeProvider } from "./lib/theme";
@@ -17,6 +18,20 @@ interface Model {
   error: string | null;
   lastLoadedAt: string | null;
   reloadKey: number;
+  adminToken: string;
+  syncStatus: "idle" | "running" | "done" | "error";
+  syncMessage: string | null;
+  syncResults: SyncResult[];
+}
+
+interface SyncResult {
+  sourceKey: string;
+  sourceName: string;
+  status: "pending" | "running" | "succeeded" | "failed" | "skipped";
+  message: string;
+  insertedEvents?: number;
+  normalizedEvents?: number;
+  rawPayloads?: number;
 }
 
 type Msg =
@@ -24,7 +39,14 @@ type Msg =
   | { type: "load_succeeded"; events: FeedEvent[]; sources: Source[] }
   | { type: "load_failed"; error: string }
   | { type: "set_filter"; key: keyof Filters; value: string | boolean }
-  | { type: "refresh" };
+  | { type: "refresh" }
+  | { type: "set_admin_token"; value: string }
+  | { type: "sync_started"; results: SyncResult[]; message: string }
+  | { type: "sync_source_started"; sourceKey: string }
+  | { type: "sync_source_succeeded"; sourceKey: string; summary: BackfillSummary }
+  | { type: "sync_source_failed"; sourceKey: string; error: string }
+  | { type: "sync_finished"; message: string }
+  | { type: "sync_failed"; error: string };
 
 const initialModel: Model = {
   events: [],
@@ -34,6 +56,10 @@ const initialModel: Model = {
   error: null,
   lastLoadedAt: null,
   reloadKey: 0,
+  adminToken: readStoredAdminToken(),
+  syncStatus: "idle",
+  syncMessage: null,
+  syncResults: [],
 };
 
 function update(model: Model, msg: Msg): Model {
@@ -58,6 +84,41 @@ function update(model: Model, msg: Msg): Model {
       };
     case "refresh":
       return { ...model, reloadKey: model.reloadKey + 1 };
+    case "set_admin_token":
+      return { ...model, adminToken: msg.value };
+    case "sync_started":
+      return { ...model, syncStatus: "running", syncMessage: msg.message, syncResults: msg.results };
+    case "sync_source_started":
+      return {
+        ...model,
+        syncResults: updateSyncResult(model.syncResults, msg.sourceKey, {
+          status: "running",
+          message: "Running backfill...",
+        }),
+      };
+    case "sync_source_succeeded":
+      return {
+        ...model,
+        syncResults: updateSyncResult(model.syncResults, msg.sourceKey, {
+          status: "succeeded",
+          message: `${msg.summary.insertedEvents} new / ${msg.summary.normalizedEvents} seen`,
+          insertedEvents: msg.summary.insertedEvents,
+          normalizedEvents: msg.summary.normalizedEvents,
+          rawPayloads: msg.summary.rawPayloads,
+        }),
+      };
+    case "sync_source_failed":
+      return {
+        ...model,
+        syncResults: updateSyncResult(model.syncResults, msg.sourceKey, {
+          status: "failed",
+          message: msg.error,
+        }),
+      };
+    case "sync_finished":
+      return { ...model, syncStatus: "done", syncMessage: msg.message };
+    case "sync_failed":
+      return { ...model, syncStatus: "error", syncMessage: msg.error };
   }
 }
 
@@ -67,6 +128,10 @@ function App() {
   useEffect(() => {
     syncUrl(model.filters);
   }, [model.filters]);
+
+  useEffect(() => {
+    writeStoredAdminToken(model.adminToken);
+  }, [model.adminToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,8 +162,12 @@ function App() {
         </div>
         <div className="topbar-actions">
           <ThemeToggle />
-          <Button type="button" onClick={() => dispatch({ type: "refresh" })} disabled={model.status === "loading"}>
-            Refresh
+          <Button
+            type="button"
+            onClick={() => void refreshFromSources(model, dispatch)}
+            disabled={model.status === "loading" || model.syncStatus === "running"}
+          >
+            {model.syncStatus === "running" ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
       </header>
@@ -140,6 +209,34 @@ function App() {
         />
       </section>
 
+      <section className="sync-panel" aria-label="Manual source refresh">
+        <label className="token-field">
+          <span>Admin token</span>
+          <Input
+            type="password"
+            value={model.adminToken}
+            placeholder="Required for manual refresh"
+            autoComplete="off"
+            onChange={(event) => dispatch({ type: "set_admin_token", value: event.target.value })}
+          />
+        </label>
+        <div className="sync-copy">
+          <strong>{model.syncMessage ?? "Manual refresh runs source backfills, then reloads the feed."}</strong>
+          <span>Token is stored in this browser only.</span>
+        </div>
+        {model.syncResults.length > 0 ? (
+          <div className="sync-results" aria-live="polite">
+            {model.syncResults.map((result) => (
+              <div className="sync-result" key={result.sourceKey}>
+                <span className={`status-dot ${result.status}`} />
+                <span>{result.sourceName}</span>
+                <span>{result.message}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
       {model.status === "error" ? <div className="notice error">{model.error}</div> : null}
       {model.status === "loading" && model.events.length === 0 ? <div className="notice">Loading feed...</div> : null}
 
@@ -172,6 +269,72 @@ function App() {
       </section>
     </main>
   );
+}
+
+async function refreshFromSources(model: Model, dispatch: Dispatch<Msg>): Promise<void> {
+  const adminToken = model.adminToken.trim();
+  if (!adminToken) {
+    dispatch({ type: "sync_failed", error: "Enter ADMIN_TOKEN to run manual backfills." });
+    return;
+  }
+
+  const initialResults = model.sources.map((source) => ({
+    sourceKey: source.key,
+    sourceName: source.name,
+    status: supportsBackfill(source) ? "pending" : "skipped",
+    message: supportsBackfill(source) ? "Waiting" : "Webhook-only in this version",
+  })) satisfies SyncResult[];
+  const runnableSources = model.sources.filter(supportsBackfill);
+
+  if (runnableSources.length === 0) {
+    dispatch({ type: "sync_failed", error: "No enabled sources support manual backfill." });
+    return;
+  }
+
+  dispatch({
+    type: "sync_started",
+    results: initialResults,
+    message: `Running ${runnableSources.length} source backfill${runnableSources.length === 1 ? "" : "s"}...`,
+  });
+
+  let failures = 0;
+  let insertedEvents = 0;
+
+  for (const source of runnableSources) {
+    dispatch({ type: "sync_source_started", sourceKey: source.key });
+
+    try {
+      const summary = await runBackfill(source.key, adminToken);
+      insertedEvents += summary.insertedEvents;
+      dispatch({ type: "sync_source_succeeded", sourceKey: source.key, summary });
+    } catch (error) {
+      failures += 1;
+      const message = error instanceof Error ? error.message : "Unknown sync error";
+      dispatch({ type: "sync_source_failed", sourceKey: source.key, error: message });
+
+      if (error instanceof ApiError && error.status === 401) {
+        dispatch({ type: "sync_failed", error: "ADMIN_TOKEN was rejected. Check the token and try again." });
+        return;
+      }
+    }
+  }
+
+  dispatch({
+    type: "sync_finished",
+    message:
+      failures > 0
+        ? `Refresh finished with ${failures} failure${failures === 1 ? "" : "s"}.`
+        : `Refresh finished. ${insertedEvents} new event${insertedEvents === 1 ? "" : "s"} inserted.`,
+  });
+  dispatch({ type: "refresh" });
+}
+
+function supportsBackfill(source: Source): boolean {
+  return source.enabled && source.capabilities.some((capability) => capability === "pollHistory" || capability === "pollStatus");
+}
+
+function updateSyncResult(results: SyncResult[], sourceKey: string, patch: Partial<SyncResult>): SyncResult[] {
+  return results.map((result) => (result.sourceKey === sourceKey ? { ...result, ...patch } : result));
 }
 
 function filtersFromUrl(search: string): Filters {
@@ -210,6 +373,19 @@ function setOptionalParam(params: URLSearchParams, key: string, value: string): 
     params.set(key, value);
   } else {
     params.delete(key);
+  }
+}
+
+function readStoredAdminToken(): string {
+  return window.localStorage.getItem("homelab-feed-admin-token") ?? "";
+}
+
+function writeStoredAdminToken(value: string): void {
+  const trimmed = value.trim();
+  if (trimmed) {
+    window.localStorage.setItem("homelab-feed-admin-token", trimmed);
+  } else {
+    window.localStorage.removeItem("homelab-feed-admin-token");
   }
 }
 

@@ -5,6 +5,7 @@ export interface Source {
   app: string;
   name: string;
   enabled: boolean;
+  capabilities: string[];
 }
 
 export interface FeedEvent {
@@ -57,6 +58,29 @@ interface SourcesResponse {
   sources: Source[];
 }
 
+export interface BackfillSummary {
+  sourceKey: string;
+  cursorKey: string;
+  rawPayloads: number;
+  normalizedEvents: number;
+  insertedEvents: number;
+  cursor?: Record<string, unknown>;
+}
+
+interface BackfillResponse {
+  backfill: BackfillSummary;
+}
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export async function loadFeed(filters: Filters): Promise<{ events: FeedEvent[]; sources: Source[] }> {
   const [events, sources] = await Promise.all([
     getJson<EventsResponse>(eventUrl(filters)),
@@ -65,11 +89,30 @@ export async function loadFeed(filters: Filters): Promise<{ events: FeedEvent[];
   return { events: events.events, sources: sources.sources };
 }
 
+export async function runBackfill(sourceKey: string, adminToken: string): Promise<BackfillSummary> {
+  const result = await postJson<BackfillResponse>(`/api/sync/${encodeURIComponent(sourceKey)}/backfill`, adminToken);
+  return result.backfill;
+}
+
 async function getJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`${response.status} ${response.statusText}: ${text.slice(0, 160)}`);
+    throw new ApiError(`${response.status} ${response.statusText}: ${text.slice(0, 160)}`, response.status);
+  }
+  return (await response.json()) as T;
+}
+
+async function postJson<T>(url: string, adminToken: string): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${adminToken}`,
+    },
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new ApiError(`${response.status} ${response.statusText}: ${text.slice(0, 160)}`, response.status);
   }
   return (await response.json()) as T;
 }

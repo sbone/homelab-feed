@@ -242,6 +242,20 @@ h1 {
   padding: 0 34px 0 10px;
 }
 
+.ui-input {
+  min-height: 34px;
+  width: 100%;
+  border: 1px solid var(--input);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--card);
+  color: var(--card-foreground);
+  padding: 0 10px;
+}
+
+.ui-input::placeholder {
+  color: var(--muted-foreground);
+}
+
 .ui-switch {
   display: inline-grid;
   grid-template-columns: auto 1fr;
@@ -299,6 +313,97 @@ h1 {
 
 .ui-switch > span:last-child {
   font-size: 0.9rem;
+}
+
+.sync-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: 10px 14px;
+  align-items: end;
+  margin: 0 0 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.token-field {
+  display: grid;
+  gap: 4px;
+}
+
+.token-field span {
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+}
+
+.sync-copy {
+  display: grid;
+  gap: 3px;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.sync-copy strong {
+  color: var(--card-foreground);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.sync-results {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 4px;
+}
+
+.sync-result {
+  display: grid;
+  grid-template-columns: auto minmax(90px, 140px) 1fr;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+}
+
+.sync-result span:nth-child(2) {
+  color: var(--card-foreground);
+  font-weight: 650;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--input);
+}
+
+.status-dot.running {
+  background: var(--info);
+  animation: pulse 900ms ease-in-out infinite;
+}
+
+.status-dot.succeeded {
+  background: var(--success);
+}
+
+.status-dot.failed {
+  background: var(--error);
+}
+
+.status-dot.skipped {
+  background: var(--muted-foreground);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 .notice {
@@ -533,6 +638,14 @@ h1 {
 
   .toolbar label:not(.ui-switch) {
     min-width: 0;
+  }
+
+  .sync-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .sync-result {
+    grid-template-columns: auto minmax(72px, 110px) 1fr;
   }
 
   .poster {
