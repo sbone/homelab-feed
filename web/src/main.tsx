@@ -23,11 +23,7 @@ type Msg =
 const initialModel: Model = {
   events: [],
   sources: [],
-  filters: {
-    sourceKey: "",
-    severity: "",
-    includeLowValue: false,
-  },
+  filters: filtersFromUrl(window.location.search),
   status: "idle",
   error: null,
   lastLoadedAt: null,
@@ -61,6 +57,10 @@ function update(model: Model, msg: Msg): Model {
 
 function App() {
   const [model, dispatch] = useReducer(update, initialModel);
+
+  useEffect(() => {
+    syncUrl(model.filters);
+  }, [model.filters]);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,6 +173,45 @@ function App() {
       </section>
     </main>
   );
+}
+
+function filtersFromUrl(search: string): Filters {
+  const params = new URLSearchParams(search);
+  const severity = params.get("severity") ?? "";
+
+  return {
+    sourceKey: params.get("source") ?? "",
+    severity: ["success", "info", "warning", "error"].includes(severity) ? severity : "",
+    includeLowValue: ["1", "true", "yes"].includes((params.get("lowValue") ?? "").toLowerCase()),
+  };
+}
+
+function syncUrl(filters: Filters): void {
+  const params = new URLSearchParams(window.location.search);
+  setOptionalParam(params, "source", filters.sourceKey);
+  setOptionalParam(params, "severity", filters.severity);
+
+  if (filters.includeLowValue) {
+    params.set("lowValue", "1");
+  } else {
+    params.delete("lowValue");
+  }
+
+  const nextSearch = params.toString();
+  const nextUrl = `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`;
+  const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+  if (nextUrl !== currentUrl) {
+    window.history.replaceState(null, "", nextUrl);
+  }
+}
+
+function setOptionalParam(params: URLSearchParams, key: string, value: string): void {
+  if (value) {
+    params.set(key, value);
+  } else {
+    params.delete(key);
+  }
 }
 
 function ResourceLinks({ event }: { event: FeedEvent }) {
