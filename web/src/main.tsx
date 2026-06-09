@@ -22,6 +22,7 @@ interface Model {
   syncStatus: "idle" | "running" | "done" | "error";
   syncMessage: string | null;
   syncResults: SyncResult[];
+  syncPanelOpen: boolean;
 }
 
 interface SyncResult {
@@ -46,7 +47,10 @@ type Msg =
   | { type: "sync_source_succeeded"; sourceKey: string; summary: BackfillSummary }
   | { type: "sync_source_failed"; sourceKey: string; error: string }
   | { type: "sync_finished"; message: string }
-  | { type: "sync_failed"; error: string };
+  | { type: "sync_failed"; error: string }
+  | { type: "set_sync_panel_open"; value: boolean };
+
+const initialAdminToken = readStoredAdminToken();
 
 const initialModel: Model = {
   events: [],
@@ -56,10 +60,11 @@ const initialModel: Model = {
   error: null,
   lastLoadedAt: null,
   reloadKey: 0,
-  adminToken: readStoredAdminToken(),
+  adminToken: initialAdminToken,
   syncStatus: "idle",
   syncMessage: null,
   syncResults: [],
+  syncPanelOpen: readStoredSyncPanelOpen(initialAdminToken),
 };
 
 function update(model: Model, msg: Msg): Model {
@@ -87,7 +92,7 @@ function update(model: Model, msg: Msg): Model {
     case "set_admin_token":
       return { ...model, adminToken: msg.value };
     case "sync_started":
-      return { ...model, syncStatus: "running", syncMessage: msg.message, syncResults: msg.results };
+      return { ...model, syncStatus: "running", syncMessage: msg.message, syncResults: msg.results, syncPanelOpen: true };
     case "sync_source_started":
       return {
         ...model,
@@ -118,7 +123,9 @@ function update(model: Model, msg: Msg): Model {
     case "sync_finished":
       return { ...model, syncStatus: "done", syncMessage: msg.message };
     case "sync_failed":
-      return { ...model, syncStatus: "error", syncMessage: msg.error };
+      return { ...model, syncStatus: "error", syncMessage: msg.error, syncPanelOpen: true };
+    case "set_sync_panel_open":
+      return { ...model, syncPanelOpen: msg.value };
   }
 }
 
@@ -132,6 +139,10 @@ function App() {
   useEffect(() => {
     writeStoredAdminToken(model.adminToken);
   }, [model.adminToken]);
+
+  useEffect(() => {
+    writeStoredSyncPanelOpen(model.syncPanelOpen);
+  }, [model.syncPanelOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -162,6 +173,13 @@ function App() {
         </div>
         <div className="topbar-actions">
           <ThemeToggle />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => dispatch({ type: "set_sync_panel_open", value: !model.syncPanelOpen })}
+          >
+            {model.syncPanelOpen ? "Hide sync" : "Sync details"}
+          </Button>
           <Button
             type="button"
             onClick={() => void refreshFromSources(model, dispatch)}
@@ -209,33 +227,40 @@ function App() {
         />
       </section>
 
-      <section className="sync-panel" aria-label="Manual source refresh">
-        <label className="token-field">
-          <span>Admin token</span>
-          <Input
-            type="password"
-            value={model.adminToken}
-            placeholder="Required for manual refresh"
-            autoComplete="off"
-            onChange={(event) => dispatch({ type: "set_admin_token", value: event.target.value })}
-          />
-        </label>
-        <div className="sync-copy">
-          <strong>{model.syncMessage ?? "Manual refresh runs source backfills, then reloads the feed."}</strong>
-          <span>Token is stored in this browser only.</span>
-        </div>
-        {model.syncResults.length > 0 ? (
-          <div className="sync-results" aria-live="polite">
-            {model.syncResults.map((result) => (
-              <div className="sync-result" key={result.sourceKey}>
-                <span className={`status-dot ${result.status}`} />
-                <span>{result.sourceName}</span>
-                <span>{result.message}</span>
-              </div>
-            ))}
+      {model.syncPanelOpen ? (
+        <section className="sync-panel" aria-label="Manual source refresh">
+          <div className="sync-panel-head">
+            <label className="token-field">
+              <span>Admin token</span>
+              <Input
+                type="password"
+                value={model.adminToken}
+                placeholder="Required for manual refresh"
+                autoComplete="off"
+                onChange={(event) => dispatch({ type: "set_admin_token", value: event.target.value })}
+              />
+            </label>
+            <Button type="button" variant="ghost" size="sm" onClick={() => dispatch({ type: "set_sync_panel_open", value: false })}>
+              Hide
+            </Button>
           </div>
-        ) : null}
-      </section>
+          <div className="sync-copy">
+            <strong>{model.syncMessage ?? "Manual refresh runs source backfills, then reloads the feed."}</strong>
+            <span>Token is stored in this browser only.</span>
+          </div>
+          {model.syncResults.length > 0 ? (
+            <div className="sync-results" aria-live="polite">
+              {model.syncResults.map((result) => (
+                <div className="sync-result" key={result.sourceKey}>
+                  <span className={`status-dot ${result.status}`} />
+                  <span>{result.sourceName}</span>
+                  <span>{result.message}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {model.status === "error" ? <div className="notice error">{model.error}</div> : null}
       {model.status === "loading" && model.events.length === 0 ? <div className="notice">Loading feed...</div> : null}
@@ -387,6 +412,19 @@ function writeStoredAdminToken(value: string): void {
   } else {
     window.localStorage.removeItem("homelab-feed-admin-token");
   }
+}
+
+function readStoredSyncPanelOpen(adminToken: string): boolean {
+  const stored = window.localStorage.getItem("homelab-feed-sync-panel-open");
+  if (stored === "true" || stored === "false") {
+    return stored === "true";
+  }
+
+  return !adminToken;
+}
+
+function writeStoredSyncPanelOpen(value: boolean): void {
+  window.localStorage.setItem("homelab-feed-sync-panel-open", String(value));
 }
 
 function providerClass(app: string): string {

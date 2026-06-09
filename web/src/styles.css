@@ -327,6 +327,13 @@ h1 {
   background: var(--card);
 }
 
+.sync-panel-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 8px;
+}
+
 .token-field {
   display: grid;
   gap: 4px;
@@ -641,6 +648,10 @@ h1 {
   }
 
   .sync-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .sync-panel-head {
     grid-template-columns: 1fr;
   }
 
