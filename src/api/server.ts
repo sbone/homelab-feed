@@ -13,6 +13,7 @@ import { sources } from "../db/schema.js";
 import { ingestNormalized, listResources, queryEvents } from "../ingest/service.js";
 import { runtimeSourceByKey, sourceRowByKey } from "../ingest/source-registry.js";
 import type { IngestMethod } from "../types.js";
+import { sourceUrl, withApiKey } from "../utils/http.js";
 import { runBackfillOnce } from "../workers/backfill.js";
 
 const eventQuerySchema = z.object({
@@ -32,6 +33,11 @@ const eventQuerySchema = z.object({
 const resourceQuerySchema = z.object({
   search: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
+});
+
+const thumbnailQuerySchema = z.object({
+  sourceKey: z.string().min(1),
+  path: z.string().min(1),
 });
 
 export function createApp(config: AppConfig, db: Database): FastifyInstance {
@@ -145,6 +151,42 @@ export function createApp(config: AppConfig, db: Database): FastifyInstance {
         secretRefs: source.secretRefs,
       })),
     };
+  });
+
+  app.get("/api/thumbnail", async (request, reply) => {
+    const query = thumbnailQuerySchema.parse(request.query);
+    const source = runtimeSourceByKey(config, query.sourceKey);
+    if (!source) {
+      return reply.code(404).send({ error: "unknown_source" });
+    }
+    if (source.app !== "tautulli") {
+      return reply.code(400).send({ error: "unsupported_thumbnail_source" });
+    }
+    if (!query.path.startsWith("/") || query.path.startsWith("//")) {
+      return reply.code(400).send({ error: "invalid_thumbnail_path" });
+    }
+
+    const upstream = sourceUrl(source, "/api/v2");
+    upstream.searchParams.set("cmd", "pms_image_proxy");
+    upstream.searchParams.set("img", query.path);
+    upstream.searchParams.set("width", "92");
+    withApiKey(upstream, source);
+
+    const response = await fetch(upstream, {
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) {
+      return reply.code(502).send({ error: "thumbnail_fetch_failed", status: response.status });
+    }
+
+    const contentType = response.headers.get("content-type") ?? "application/octet-stream";
+    if (!contentType.startsWith("image/")) {
+      return reply.code(502).send({ error: "thumbnail_not_image", contentType });
+    }
+
+    const cacheControl = response.headers.get("cache-control") ?? "public, max-age=2592000";
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return reply.header("content-type", contentType).header("cache-control", cacheControl).send(buffer);
   });
 
   app.post("/api/sync/:sourceKey/backfill", async (request, reply) => {

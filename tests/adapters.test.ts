@@ -50,6 +50,7 @@ describe("adapters", () => {
     expect(event.resource?.title).toBe("Example Show - Pilot");
     expect(event.resource?.externalIds?.tmdbId).toBe("12345");
     expect(event.resource?.externalIds?.plexGuid).toBe("plex://episode/abc");
+    expect(event.resource?.appRefs?.posterUrl).toBe("/api/thumbnail?sourceKey=tautulli&path=%2Flibrary%2Fmetadata%2F153037%2Fthumb%2F1781006400");
     expect(event.attributes?.plex).toBe(true);
   });
 

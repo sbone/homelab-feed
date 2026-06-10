@@ -143,7 +143,7 @@ function normalizeHistoryRow(
   forcedType?: string,
 ): NormalizedEvent {
   const row = asRecord(payload);
-  const resource = tautulliResource(row);
+  const resource = tautulliResource(row, context.source.key);
   const rowId = stringValue(row.row_id) ?? stringValue(row.id);
   const ratingKey = stringValue(row.rating_key);
   const stopped = parseDate(row.stopped ?? row.date ?? row.started, context.now);
@@ -176,7 +176,7 @@ function normalizeHistoryRow(
 
 function normalizeRecentlyAdded(payload: unknown, context: AdapterContext): NormalizedEvent {
   const row = asRecord(payload);
-  const resource = tautulliResource(row);
+  const resource = tautulliResource(row, context.source.key);
   const ratingKey = stringValue(row.rating_key);
   const addedAt = parseDate(row.added_at ?? row.updated_at, context.now);
 
@@ -200,7 +200,7 @@ function normalizeRecentlyAdded(payload: unknown, context: AdapterContext): Norm
 
 function normalizeActivitySession(payload: unknown, context: AdapterContext): NormalizedEvent {
   const row = asRecord(payload);
-  const resource = tautulliResource(row);
+  const resource = tautulliResource(row, context.source.key);
   const sessionKey = stringValue(row.session_key) ?? stringValue(row.session_id);
   const startedAt = parseDate(row.started ?? row.view_offset ?? row.added_at, context.now);
   const user = displayUser(row);
@@ -232,7 +232,7 @@ function normalizeActivitySession(payload: unknown, context: AdapterContext): No
   };
 }
 
-function tautulliResource(row: Record<string, unknown>): ResourceDraft {
+function tautulliResource(row: Record<string, unknown>, sourceKey: string): ResourceDraft {
   const guid = stringValue(row.guid);
   const ratingKey = stringValue(row.rating_key);
   const guids = asArray(row.guids).map((value) => stringValue(value)).filter((value): value is string => Boolean(value));
@@ -240,6 +240,7 @@ function tautulliResource(row: Record<string, unknown>): ResourceDraft {
   const title = displayTitle(row);
   const year = stringValue(row.year);
   const mediaType = stringValue(row.media_type);
+  const thumb = stringValue(row.thumb);
 
   return {
     resourceType: "media",
@@ -257,12 +258,18 @@ function tautulliResource(row: Record<string, unknown>): ResourceDraft {
       ratingKey,
       mediaType,
       year,
-      thumb: row.thumb,
+      thumb,
+      posterUrl: thumb ? thumbnailUrl(sourceKey, thumb) : undefined,
       art: row.art,
       parentRatingKey: row.parent_rating_key,
       grandparentRatingKey: row.grandparent_rating_key,
     }),
   };
+}
+
+function thumbnailUrl(sourceKey: string, path: string): string {
+  const params = new URLSearchParams({ sourceKey, path });
+  return `/api/thumbnail?${params.toString()}`;
 }
 
 function canonicalKeyFor(row: Record<string, unknown>, externalIds: Record<string, string>): string | undefined {
