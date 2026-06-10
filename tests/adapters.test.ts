@@ -3,6 +3,7 @@ import sonarrWebhook from "./fixtures/sonarr-webhook.json" with { type: "json" }
 import radarrHistory from "./fixtures/radarr-history.json" with { type: "json" };
 import sabHistory from "./fixtures/sabnzbd-history.json" with { type: "json" };
 import tautulliHistory from "./fixtures/tautulli-history.json" with { type: "json" };
+import tautulliRecentlyAddedEpisode from "./fixtures/tautulli-recently-added-episode.json" with { type: "json" };
 import overseerrWebhook from "./fixtures/overseerr-webhook.json" with { type: "json" };
 import { getAdapter } from "../src/adapters/index.js";
 import type { AdapterContext, RuntimeSource } from "../src/types.js";
@@ -52,6 +53,19 @@ describe("adapters", () => {
     expect(event.resource?.externalIds?.plexGuid).toBe("plex://episode/abc");
     expect(event.resource?.appRefs?.posterUrl).toBe("/api/thumbnail?sourceKey=tautulli&path=%2Flibrary%2Fmetadata%2F153037%2Fthumb%2F1781006400");
     expect(event.attributes?.plex).toBe(true);
+  });
+
+  it("formats Tautulli recently added episodes with episode code and series artwork", () => {
+    const source = sourceFor("tautulli");
+    const [event] = getAdapter("tautulli").normalizeWebhook(
+      { ...tautulliRecentlyAddedEpisode, trigger: "recently_added" },
+      context(source),
+    );
+
+    expect(event.eventType).toBe("library-new");
+    expect(event.message).toBe("S01E03");
+    expect(event.resource?.subtitle).toContain("S01E03");
+    expect(event.resource?.appRefs?.posterUrl).toBe("/api/thumbnail?sourceKey=tautulli&path=%2Flibrary%2Fmetadata%2F449513%2Fthumb");
   });
 
   it("normalizes Overseerr request events with TMDB identity", () => {

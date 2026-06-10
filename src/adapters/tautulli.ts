@@ -179,12 +179,13 @@ function normalizeRecentlyAdded(payload: unknown, context: AdapterContext): Norm
   const resource = tautulliResource(row, context.source.key);
   const ratingKey = stringValue(row.rating_key);
   const addedAt = parseDate(row.added_at ?? row.updated_at, context.now);
+  const episodeCode = seasonEpisodeCode(row);
 
   return {
     eventType: "library-new",
     severity: "success",
     title: `${mediaLabel(row)} added: ${resource.title ?? "Plex item"}`,
-    message: stringValue(row.summary) ?? stringValue(row.library_name),
+    message: episodeCode ?? (stringValue(row.media_type) === "episode" ? undefined : stringValue(row.summary) ?? stringValue(row.library_name)),
     occurredAt: addedAt,
     resource,
     dedupeKey: compactKey("tautulli", context.source.key, "recently-added", ratingKey ?? resource.title, addedAt.toISOString()),
@@ -194,6 +195,7 @@ function normalizeRecentlyAdded(payload: unknown, context: AdapterContext): Norm
       ratingKey,
       libraryName: row.library_name,
       sectionId: row.section_id,
+      seasonEpisode: episodeCode,
     }),
   };
 }
@@ -240,12 +242,13 @@ function tautulliResource(row: Record<string, unknown>, sourceKey: string): Reso
   const title = displayTitle(row);
   const year = stringValue(row.year);
   const mediaType = stringValue(row.media_type);
-  const thumb = stringValue(row.thumb);
+  const thumb = imagePath(row, "thumb", mediaType);
+  const episodeCode = seasonEpisodeCode(row);
 
   return {
     resourceType: "media",
     title,
-    subtitle: [year, mediaType, stringValue(row.library_name)].filter(Boolean).join(" · ") || undefined,
+    subtitle: [episodeCode, year, mediaType, stringValue(row.library_name)].filter(Boolean).join(" · ") || undefined,
     canonicalKey: canonicalKeyFor(row, externalIds),
     externalIds: compactRecord({
       ...externalIds,
@@ -258,6 +261,7 @@ function tautulliResource(row: Record<string, unknown>, sourceKey: string): Reso
       ratingKey,
       mediaType,
       year,
+      seasonEpisode: episodeCode,
       thumb,
       posterUrl: thumb ? thumbnailUrl(sourceKey, thumb) : undefined,
       art: row.art,
@@ -265,6 +269,25 @@ function tautulliResource(row: Record<string, unknown>, sourceKey: string): Reso
       grandparentRatingKey: row.grandparent_rating_key,
     }),
   };
+}
+
+function imagePath(row: Record<string, unknown>, kind: "thumb" | "art", mediaType: string | undefined): string | undefined {
+  if (mediaType === "episode" && kind === "thumb") {
+    return (
+      stringValue(row.grandparent_thumb) ??
+      imagePathForRatingKey(row.grandparent_rating_key, "thumb") ??
+      stringValue(row.parent_thumb) ??
+      imagePathForRatingKey(row.parent_rating_key, "thumb") ??
+      stringValue(row.thumb)
+    );
+  }
+
+  return stringValue(row[kind]);
+}
+
+function imagePathForRatingKey(value: unknown, kind: "thumb" | "art"): string | undefined {
+  const ratingKey = stringValue(value);
+  return ratingKey ? `/library/metadata/${ratingKey}/${kind}` : undefined;
 }
 
 function thumbnailUrl(sourceKey: string, path: string): string {
@@ -331,6 +354,17 @@ function displayTitle(row: Record<string, unknown>): string | undefined {
 
 function displayUser(row: Record<string, unknown>): string | undefined {
   return stringValue(row.friendly_name) ?? stringValue(row.user) ?? stringValue(row.username);
+}
+
+function seasonEpisodeCode(row: Record<string, unknown>): string | undefined {
+  const season = numberValue(row.parent_media_index) ?? numberValue(row.season_num) ?? numberValue(row.season);
+  const episode = numberValue(row.media_index) ?? numberValue(row.episode_num) ?? numberValue(row.episode);
+
+  if (season === undefined || episode === undefined) {
+    return undefined;
+  }
+
+  return `S${String(season).padStart(2, "0")}E${String(episode).padStart(2, "0")}`;
 }
 
 function mediaLabel(row: Record<string, unknown>): string {

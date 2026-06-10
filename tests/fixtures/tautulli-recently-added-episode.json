@@ -1,0 +1,20 @@
+{
+  "rating_key": "451132",
+  "guid": "plex://episode/abc123",
+  "guids": ["tmdb://6768817", "tvdb://11512022"],
+  "media_type": "episode",
+  "full_title": "Example Show - Emergency Shelter",
+  "grandparent_title": "Example Show",
+  "parent_title": "Season 1",
+  "title": "Emergency Shelter",
+  "year": "2026",
+  "library_name": "TV",
+  "section_id": "2",
+  "parent_media_index": "1",
+  "media_index": "3",
+  "summary": "Please seek shelter should a centuries-old storm rage toward the island.",
+  "thumb": "/library/metadata/451132/thumb/1781054859",
+  "parent_rating_key": "449514",
+  "grandparent_rating_key": "449513",
+  "added_at": 1781054859
+}

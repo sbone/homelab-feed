@@ -66,6 +66,22 @@ export async function ingestNormalized(db: Database, request: IngestRequest): Pr
 
     if (event) {
       insertedEvents += 1;
+    } else {
+      await db
+        .update(events)
+        .set({
+          ...(raw?.id ? { rawEventId: raw.id } : {}),
+          resourceId,
+          occurredAt: normalized.occurredAt ?? new Date(),
+          severity: normalized.severity,
+          eventType: normalized.eventType,
+          title: normalized.title,
+          message: normalized.message,
+          correlationKey: normalized.correlationKey,
+          visibility: normalized.visibility ?? "default",
+          attributes: normalized.attributes ?? {},
+        })
+        .where(and(eq(events.sourceId, request.sourceRow.id), eq(events.dedupeKey, normalized.dedupeKey)));
     }
   }
 
